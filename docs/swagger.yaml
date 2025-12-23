@@ -1,0 +1,179 @@
+openapi: 3.0.0
+info:
+  title: SchNet Value API
+  description: Backend API for German property valuation based on ImmoWertV standards
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000
+    description: Local server
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      description: Check if backend service is running
+      responses:
+        200:
+          description: Server is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: SchNet Value backend is running
+
+  /api/valuation/comparative:
+    post:
+      summary: Comparative Value Method
+      description: Calculates property value using comparable sales and adjustment factors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - comparables
+              properties:
+                comparables:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - purchasePrice
+                      - afLocation
+                      - afSize
+                      - afCondition
+                      - afEquipment
+                      - afTime
+                    properties:
+                      purchasePrice:
+                        type: number
+                        example: 350000
+                      afLocation:
+                        type: number
+                        example: 1.05
+                      afSize:
+                        type: number
+                        example: 0.95
+                      afCondition:
+                        type: number
+                        example: 1.1
+                      afEquipment:
+                        type: number
+                        example: 1.0
+                      afTime:
+                        type: number
+                        example: 1.02
+      responses:
+        200:
+          description: Comparative value calculated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  method:
+                    type: string
+                    example: Comparative Value Method
+                  value:
+                    type: number
+                    example: 329479
+
+  /api/valuation/income:
+    post:
+      summary: Income Capitalization Method (ImmoWertV)
+      description: Calculates income-based property value
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plotArea:
+                  type: number
+                  example: 500
+                landValueRate:
+                  type: number
+                  example: 400
+                livingArea:
+                  type: number
+                  example: 120
+                rentPerSqm:
+                  type: number
+                  example: 10
+                operatingCosts:
+                  type: object
+                  properties:
+                    administration:
+                      type: number
+                      example: 300
+                    maintenancePerSqm:
+                      type: number
+                      example: 10
+                    vacancyRate:
+                      type: number
+                      example: 0.03
+                capitalizationRate:
+                  type: number
+                  example: 0.035
+                remainingUsefulLife:
+                  type: number
+                  example: 50
+                marketAdjustmentFactor:
+                  type: number
+                  example: 1.0
+      responses:
+        200:
+          description: Income value calculated
+  /api/valuation/cost:
+    post:
+      summary: Cost Approach Method (Sachwertverfahren)
+      description: Calculates property value using the cost approach
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plotArea:
+                  type: number
+                  example: 600
+                landValueRate:
+                  type: number
+                  example: 350
+                grossFloorArea:
+                  type: number
+                  example: 180
+                standardConstructionCost:
+                  type: number
+                  example: 870
+                constructionIndexCurrent:
+                  type: number
+                  example: 160
+                constructionIndexBase:
+                  type: number
+                  example: 100
+                age:
+                  type: number
+                  example: 20
+                totalUsefulLife:
+                  type: number
+                  example: 80
+                externalFacilities:
+                  type: number
+                  example: 12000
+                marketAdjustmentFactor:
+                  type: number
+                  example: 1.0
+      responses:
+        200:
+          description: Cost value calculated
