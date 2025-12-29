@@ -8,14 +8,14 @@ export const calculateCostValue = (req, res) => {
     constructionIndexBase,
     age,
     totalUsefulLife,
-    externalFacilities,
+    externalFacilitiesRate,
     marketAdjustmentFactor
   } = req.body;
 
-  // 1. Land Value
+  // Step 1: Land Value
   const landValue = plotArea * landValueRate;
 
-  // 2. Construction Costs (NHK 2010 adjusted)
+  // Step 2: Construction Costs (Index adjusted)
   const baseConstructionCost =
     grossFloorArea * standardConstructionCost;
 
@@ -23,29 +23,25 @@ export const calculateCostValue = (req, res) => {
     baseConstructionCost *
     (constructionIndexCurrent / constructionIndexBase);
 
-  // 3. Depreciation (Linear)
-  const depreciationRate = age / totalUsefulLife;
+  // Step 3: Depreciation (Linear)
+  const depreciation = age / totalUsefulLife;
   const buildingResidualValue =
-    adjustedConstructionCost * (1 - depreciationRate);
+    adjustedConstructionCost * (1 - depreciation);
 
-  // 4. Preliminary Cost Value
+  // Step 4: External Facilities
+  const externalFacilities =
+    buildingResidualValue * externalFacilitiesRate;
+
+  // Step 5: Preliminary Cost Value
   const preliminaryCostValue =
     landValue + buildingResidualValue + externalFacilities;
 
-  // 5. Market Adjustment
-  const costValue =
+  // Step 6: Market Adjustment
+  const finalCostValue =
     preliminaryCostValue * marketAdjustmentFactor;
 
-  res.status(200).json({
+  res.json({
     method: "Cost Approach Method",
-    costValue: Math.round(costValue),
-    breakdown: {
-      landValue,
-      adjustedConstructionCost,
-      buildingResidualValue,
-      depreciationRate,
-      externalFacilities,
-      marketAdjustmentFactor
-    }
+    value: Math.round(finalCostValue)
   });
 };

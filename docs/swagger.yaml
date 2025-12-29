@@ -133,10 +133,10 @@ paths:
       responses:
         200:
           description: Income value calculated
+
   /api/valuation/cost:
     post:
       summary: Cost Approach Method (Sachwertverfahren)
-      description: Calculates property value using the cost approach
       requestBody:
         required: true
         content:
@@ -146,10 +146,10 @@ paths:
               properties:
                 plotArea:
                   type: number
-                  example: 600
+                  example: 500
                 landValueRate:
                   type: number
-                  example: 350
+                  example: 400
                 grossFloorArea:
                   type: number
                   example: 180
@@ -168,12 +168,38 @@ paths:
                 totalUsefulLife:
                   type: number
                   example: 80
-                externalFacilities:
+                externalFacilitiesRate:
                   type: number
-                  example: 12000
+                  example: 0.04
                 marketAdjustmentFactor:
                   type: number
                   example: 1.0
       responses:
-        200:
+        "200":
           description: Cost value calculated
+
+  /api/valuation/market-value:
+    post:
+      summary: Final Market Value (ImmoWertV)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                propertyType:
+                  type: string
+                  example: Condominium
+                comparative:
+                  type: object
+                income:
+                  type: object
+                cost:
+                  type: object
+                spf:
+                  type: number
+                  example: -10000
+      responses:
+        "200":
+          description: Market value calculated
