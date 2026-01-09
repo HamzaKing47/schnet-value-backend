@@ -3,40 +3,62 @@ import { incomeValue } from "../services/income.service.js";
 import { costValue } from "../services/cost.service.js";
 
 export const calculateMarketValue = (req, res) => {
-  const { propertyType, comparative, income, cost, spf } = req.body;
+  try {
+    const { propertyType, comparative, income, cost, spf = 0 } = req.body;
 
-  let value1 = null;
-  let value2 = null;
-  let value3 = null;
-  let marketValue = 0;
+    const comparativeVal = calculateComparativeValue(
+      comparative?.comparables
+    );
 
-  if (comparative)
-    value2 = calculateComparativeValue(comparative.comparables);
+    const incomeVal = income ? incomeValue(income) : null;
+    const costVal = cost ? costValue(cost) : null;
 
-  if (income)
-    value1 = incomeValue(income);
+    let marketValue = null;
 
-  if (cost)
-    value3 = costValue(cost);
+    // 🏠 ImmoWertV-based logic
+    if (propertyType === "MultiFamilyBuilding") {
+      if (incomeVal && costVal) {
+        marketValue = 0.7 * incomeVal + 0.3 * costVal;
+      }
+    }
 
-  if (propertyType === "MultiFamilyBuilding") {
-    marketValue = 0.7 * value1 + 0.3 * value3;
-  } else if (propertyType === "Condominium") {
-    marketValue = 0.8 * value2 + 0.2 * value1;
-  } else if (propertyType === "SingleFamilyHome") {
-    marketValue = 0.6 * value2 + 0.4 * value3;
+    if (propertyType === "Condominium") {
+      if (comparativeVal && incomeVal) {
+        marketValue = 0.8 * comparativeVal + 0.2 * incomeVal;
+      }
+    }
+
+    if (propertyType === "SingleFamilyHome") {
+      if (comparativeVal && costVal) {
+        marketValue = 0.6 * comparativeVal + 0.4 * costVal;
+      }
+    }
+
+    if (marketValue === null) {
+      return res.status(400).json({
+        error: "Insufficient data for market value calculation",
+        breakdown: {
+          comparativeValue: comparativeVal,
+          incomeValue: incomeVal,
+          costValue: costVal,
+        },
+      });
+    }
+
+    marketValue += spf;
+
+    res.json({
+      method: "Market Value (ImmoWertV)",
+      marketValue: Math.round(marketValue),
+      breakdown: {
+        comparativeValue: comparativeVal,
+        incomeValue: incomeVal,
+        costValue: costVal,
+        spf,
+      },
+    });
+  } catch (err) {
+    console.error("MARKET VALUE ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
-
-  if (spf) marketValue += spf;
-
-  res.json({
-    method: "Market Value (ImmoWertV)",
-    marketValue: Math.round(marketValue),
-    breakdown: {
-      incomeValue: value1,
-      comparativeValue: value2,
-      costValue: value3,
-      spf: spf || 0,
-    },
-  });
 };

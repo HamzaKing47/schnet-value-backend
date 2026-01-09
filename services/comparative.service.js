@@ -1,6 +1,9 @@
-export const calculateComparativeValue = (comparables, timeIndexRatio = 1) => {
-  if (!comparables || comparables.length === 0) {
-    throw new Error("No comparable properties provided");
+export const calculateComparativeValue = (
+  comparables = [],
+  timeIndexRatio = 1
+) => {
+  if (!Array.isArray(comparables) || comparables.length === 0) {
+    return null; // ✅ DO NOT THROW
   }
 
   let total = 0;
@@ -21,5 +24,5 @@ export const calculateComparativeValue = (comparables, timeIndexRatio = 1) => {
     total += purchasePrice * adjustmentFactor;
   });
 
-  return total / comparables.length;
+  return Math.round(total / comparables.length);
 };
