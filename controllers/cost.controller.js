@@ -1,4 +1,22 @@
+import { validateRequired } from "../utils/validateRequired.js";
+
 export const calculateCostValue = (req, res) => {
+  const error = validateRequired(req.body, [
+    "plotArea",
+    "landValueRate",
+    "grossFloorArea",
+    "standardConstructionCost",
+    "constructionIndexCurrent",
+    "constructionIndexBase",
+    "age",
+    "totalUsefulLife",
+    "marketAdjustmentFactor",
+  ]);
+
+  if (error) {
+    return res.status(400).json({ error });
+  }
+
   const {
     plotArea,
     landValueRate,
@@ -8,40 +26,36 @@ export const calculateCostValue = (req, res) => {
     constructionIndexBase,
     age,
     totalUsefulLife,
-    externalFacilitiesRate,
-    marketAdjustmentFactor
+    externalFacilitiesRate = 0,
+    marketAdjustmentFactor,
   } = req.body;
 
-  // Step 1: Land Value
   const landValue = plotArea * landValueRate;
 
-  // Step 2: Construction Costs (Index adjusted)
-  const baseConstructionCost =
-    grossFloorArea * standardConstructionCost;
-
-  const adjustedConstructionCost =
-    baseConstructionCost *
+  const indexedCost =
+    standardConstructionCost *
     (constructionIndexCurrent / constructionIndexBase);
 
-  // Step 3: Depreciation (Linear)
+  const buildingCost = grossFloorArea * indexedCost;
+
   const depreciation = age / totalUsefulLife;
-  const buildingResidualValue =
-    adjustedConstructionCost * (1 - depreciation);
+  const residualBuildingValue = buildingCost * (1 - depreciation);
 
-  // Step 4: External Facilities
   const externalFacilities =
-    buildingResidualValue * externalFacilitiesRate;
+    residualBuildingValue * externalFacilitiesRate;
 
-  // Step 5: Preliminary Cost Value
-  const preliminaryCostValue =
-    landValue + buildingResidualValue + externalFacilities;
-
-  // Step 6: Market Adjustment
   const finalCostValue =
-    preliminaryCostValue * marketAdjustmentFactor;
+    (landValue + residualBuildingValue + externalFacilities) *
+    marketAdjustmentFactor;
 
   res.json({
     method: "Cost Approach Method",
-    value: Math.round(finalCostValue)
+    value: Math.round(finalCostValue),
+    breakdown: {
+      landValue,
+      buildingCost,
+      depreciation,
+      externalFacilities,
+    },
   });
 };

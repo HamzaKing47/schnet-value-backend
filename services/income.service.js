@@ -1,27 +1,41 @@
 export const incomeValue = (data) => {
-  const landValue = data.plotArea * data.landValueRate;
+  if (!data) return null;
 
-  const grossIncome =
-    data.livingArea * data.rentPerSqm * 12;
+  const {
+    plotArea,
+    landValueRate,
+    livingArea,
+    rentPerSqm,
+    operatingCosts,
+    capitalizationRate,
+    remainingUsefulLife,
+    marketAdjustmentFactor = 1,
+  } = data;
 
-  const operatingCosts =
-    data.operatingCosts.administration +
-    data.livingArea * data.operatingCosts.maintenancePerSqm +
-    grossIncome * data.operatingCosts.vacancyRate;
+  if (
+    !plotArea ||
+    !landValueRate ||
+    !livingArea ||
+    !rentPerSqm ||
+    !capitalizationRate
+  ) {
+    return null;
+  }
 
-  const netIncome = grossIncome - operatingCosts;
+  const landValue = plotArea * landValueRate;
+  const grossIncome = livingArea * rentPerSqm * 12;
 
-  const landInterest =
-    landValue * data.capitalizationRate;
+  const maintenance =
+    (operatingCosts?.maintenancePerSqm || 0) * livingArea;
+  const admin = operatingCosts?.administration || 0;
+  const vacancyLoss =
+    grossIncome * (operatingCosts?.vacancyRate || 0);
 
-  const buildingIncome =
-    netIncome - landInterest;
+  const netIncome = grossIncome - maintenance - admin - vacancyLoss;
 
-  const q = 1 + data.capitalizationRate;
-  const v =
-    (Math.pow(q, data.remainingUsefulLife) - 1) /
-    (Math.pow(q, data.remainingUsefulLife) * (q - 1));
+  const buildingIncomeValue = netIncome / capitalizationRate;
 
-  return (landValue + buildingIncome * v) *
-    data.marketAdjustmentFactor;
+  return Math.round(
+    (landValue + buildingIncomeValue) * marketAdjustmentFactor
+  );
 };

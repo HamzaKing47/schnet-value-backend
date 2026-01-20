@@ -1,64 +1,62 @@
-import { calculateComparativeValue } from "../services/comparative.service.js";
-import { incomeValue } from "../services/income.service.js";
-import { costValue } from "../services/cost.service.js";
-
 export const calculateMarketValue = (req, res) => {
-  try {
-    const { propertyType, comparative, income, cost, spf = 0 } = req.body;
+  const {
+    propertyType,
+    comparative,
+    income,
+    cost,
+    spf = 0,
+    weights,
+  } = req.body;
 
-    const comparativeVal = calculateComparativeValue(
-      comparative?.comparables
-    );
+  const comparativeValue = comparative?.value ?? null;
+  const incomeValue = income?.incomeValue ?? null;
+  const costValue = cost?.value ?? null;
 
-    const incomeVal = income ? incomeValue(income) : null;
-    const costVal = cost ? costValue(cost) : null;
+  const w = weights || defaultWeights(propertyType);
 
-    let marketValue = null;
+  let weightedSum = 0;
+  let weightTotal = 0;
 
-    // 🏠 ImmoWertV-based logic
-    if (propertyType === "MultiFamilyBuilding") {
-      if (incomeVal && costVal) {
-        marketValue = 0.7 * incomeVal + 0.3 * costVal;
-      }
-    }
-
-    if (propertyType === "Condominium") {
-      if (comparativeVal && incomeVal) {
-        marketValue = 0.8 * comparativeVal + 0.2 * incomeVal;
-      }
-    }
-
-    if (propertyType === "SingleFamilyHome") {
-      if (comparativeVal && costVal) {
-        marketValue = 0.6 * comparativeVal + 0.4 * costVal;
-      }
-    }
-
-    if (marketValue === null) {
-      return res.status(400).json({
-        error: "Insufficient data for market value calculation",
-        breakdown: {
-          comparativeValue: comparativeVal,
-          incomeValue: incomeVal,
-          costValue: costVal,
-        },
-      });
-    }
-
-    marketValue += spf;
-
-    res.json({
-      method: "Market Value (ImmoWertV)",
-      marketValue: Math.round(marketValue),
-      breakdown: {
-        comparativeValue: comparativeVal,
-        incomeValue: incomeVal,
-        costValue: costVal,
-        spf,
-      },
-    });
-  } catch (err) {
-    console.error("MARKET VALUE ERROR:", err);
-    res.status(500).json({ error: err.message });
+  if (comparativeValue) {
+    weightedSum += comparativeValue * w.comparative;
+    weightTotal += w.comparative;
   }
+
+  if (incomeValue) {
+    weightedSum += incomeValue * w.income;
+    weightTotal += w.income;
+  }
+
+  if (costValue) {
+    weightedSum += costValue * w.cost;
+    weightTotal += w.cost;
+  }
+
+  const marketValue =
+    weightTotal > 0
+      ? Math.round(weightedSum / weightTotal + spf)
+      : null;
+
+  res.json({
+    method: "Market Value (ImmoWertV)",
+    marketValue,
+    breakdown: {
+      comparativeValue,
+      incomeValue,
+      costValue,
+      weights: w,
+      spf,
+    },
+  });
 };
+
+function defaultWeights(type) {
+  switch (type) {
+    case "SingleFamilyHome":
+      return { comparative: 0.5, income: 0, cost: 0.5 };
+    case "MultiFamilyBuilding":
+      return { comparative: 0, income: 0.6, cost: 0.4 };
+    default:
+      return { comparative: 0.4, income: 0.4, cost: 0.2 };
+  }
+}

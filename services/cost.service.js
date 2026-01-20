@@ -1,26 +1,59 @@
 export const costValue = (data) => {
-  const landValue =
-    data.plotArea * data.landValueRate;
+  if (!data) throw new Error("Cost data missing");
 
-  const constructionCost =
-    data.grossFloorArea *
-    data.standardConstructionCost *
-    (data.constructionIndexCurrent /
-      data.constructionIndexBase);
+  const {
+    plotArea,
+    landValueRate,
+    grossFloorArea,
+    standardConstructionCost,
+    constructionIndexCurrent,
+    constructionIndexBase,
+    age,
+    totalUsefulLife,
+    externalFacilitiesRate = 0,
+    marketAdjustmentFactor = 1,
+  } = data;
 
-  const depreciation =
-    data.age / data.totalUsefulLife;
+  // STRICT validation (correct way)
+  const requiredFields = [
+    plotArea,
+    landValueRate,
+    grossFloorArea,
+    standardConstructionCost,
+    constructionIndexCurrent,
+    constructionIndexBase,
+    age,
+    totalUsefulLife,
+  ];
 
-  const buildingValue =
-    constructionCost * (1 - depreciation);
+  if (requiredFields.some(v => v === undefined || v === null)) {
+    throw new Error("Missing required cost valuation fields");
+  }
 
+  // 1. Land value
+  const landValue = plotArea * landValueRate;
+
+  // 2. Indexed construction cost
+  const indexedCost =
+    standardConstructionCost *
+    (constructionIndexCurrent / constructionIndexBase);
+
+  const buildingCost = grossFloorArea * indexedCost;
+
+  // 3. Depreciation
+  const depreciationRate = age / totalUsefulLife;
+  const depreciatedBuildingValue =
+    buildingCost * (1 - depreciationRate);
+
+  // 4. External facilities
   const externalFacilities =
-    buildingValue * data.externalFacilitiesRate;
+    depreciatedBuildingValue * externalFacilitiesRate;
 
-  return (
-    (landValue +
-      buildingValue +
-      externalFacilities) *
-    data.marketAdjustmentFactor
-  );
+  // 5. Total value
+  const totalValue =
+    landValue +
+    depreciatedBuildingValue +
+    externalFacilities;
+
+  return Math.round(totalValue * marketAdjustmentFactor);
 };
